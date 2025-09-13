@@ -8,7 +8,7 @@
  * Vertical   - Height - Y
  */
 constexpr size_t WIDTH = 60;
-constexpr size_t HEIGHT = 28;
+constexpr size_t HEIGHT = 20;
 
 typedef struct {
     int x;

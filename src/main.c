@@ -71,7 +71,11 @@ void drawHeader(GameState *gs) {
 }
 
 void draw(GameState *gs) {
-    system("clear");
+    if (!gs->isActive) {
+        return;
+    }
+
+   system("clear");
 
     drawHeader(gs);
 
@@ -143,7 +147,7 @@ void tick(GameState *gs) {
     // Check for food
     const Point *food = getFoodPosition(gs);
     if (newHead.y == food->y && newHead.x == food->x) {
-        setSnakeLength(gs, getSnakeLength(gs));
+        setSnakeLength(gs, getSnakeLength(gs) + 1);
         setPoints(gs, getPoints(gs) + 1);
         spawnFood(&gs->food);
     }
@@ -157,6 +161,7 @@ void initGameState(GameState *gs) {
     setDirection(gs, RIGHT);
 
     setSnakeLength(gs, DEFAULT_START_LENGTH);
+    setPoints(gs, 0);
 
     for (size_t i = 0; i < gs->snakeLength; i++) {
         gs->snake[i] = (Point){WIDTH / 2 - i, HEIGHT / 2};
@@ -173,7 +178,6 @@ bool keyboardHit() {
 
 void enableRawMode(GameState *gs) {
     tcgetattr(STDIN_FILENO, &gs->origTerm);
-    atexit((void (*))disableRawMode);
     struct termios rawTerm = gs->origTerm;
     rawTerm.c_lflag &= ~(ECHO | ICANON);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &rawTerm);
