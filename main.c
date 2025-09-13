@@ -88,7 +88,7 @@ void drawHeader(const GameState *gs) {
     for (size_t i = 0; scoreMsg[i] != '\0'; i++) {
         putchar(scoreMsg[i]);
     }
-    printNumber(gs->snakeLength);
+    putNumber(gs->snakeLength);
     putchar('\n');
 
     // Print seperator

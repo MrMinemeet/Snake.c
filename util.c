@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-void printNumber(int number) {
+void putNumber(int number) {
     if (number == 0) {
         putchar('0');
         return;
@@ -12,7 +12,7 @@ void printNumber(int number) {
         number = -number;
     }
     if (number >= 10) {
-        printNumber(number / 10);
+        putNumber(number / 10);
     }
     putchar((number % 10) + '0');
 }
