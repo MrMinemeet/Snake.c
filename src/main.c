@@ -1,47 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <termios.h>
 #include <time.h>
 
+#include "GameState.h"
 #include "util.h"
-
-/*
- * Horizontal - Width  - X
- * Vertical   - Height - Y
- */
-constexpr size_t WIDTH = 60;
-constexpr size_t HEIGHT = 28;
 
 constexpr size_t DEFAULT_START_LENGTH = 2;
 
-typedef enum {
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT
-} Direction;
-
-typedef struct {
-    int x;
-    int y;
-} Point;
-
-typedef struct {
-    bool isActive;
-    Point snake[WIDTH * HEIGHT];
-    Point food;
-    size_t snakeLength;
-    Direction direction;
-    struct termios origTerm;
-} GameState;
-
-void drawHeader(const GameState *gs);
+void drawHeader(GameState *gs);
 bool keyboardHit();
 void enableRawMode(GameState *gs);
-void disableRawMode(const GameState *gs);
+void disableRawMode(GameState *gs);
 void spawnFood(Point *food);
-void draw(const GameState *gs);
+void draw(GameState *gs);
 void tick(GameState *gs);
 void initGameState(GameState *gs);
 
@@ -53,19 +25,19 @@ int main(void) {
     initGameState(&gs);
 
     enableRawMode(&gs);
-    while (gs.isActive) {
+    while (isActive(&gs)) {
         if (keyboardHit()) {
             char key;
             read(STDIN_FILENO, &key, 1);
-
-            if (key == 'w' && gs.direction != DOWN) {
-                gs.direction = UP;
-            } else if (key == 's' && gs.direction != UP) {
-                gs.direction = DOWN;
-            } else if (key == 'a' && gs.direction != RIGHT) {
-                gs.direction = LEFT;
-            } else if (key == 'd' && gs.direction != LEFT) {
-                gs.direction = RIGHT;
+            const Direction dir = getDirection(&gs);
+            if (key == 'w' && dir != DOWN) {
+                setDirection(&gs, UP);
+            } else if (key == 's' && dir != UP) {
+                setDirection(&gs, DOWN);
+            } else if (key == 'a' && dir != RIGHT) {
+                setDirection(&gs, LEFT);
+            } else if (key == 'd' && dir != LEFT) {
+                setDirection(&gs, RIGHT);
             }
         }
         tick(&gs);
@@ -82,13 +54,13 @@ void spawnFood(Point *food) {
     food->y = rand() % HEIGHT; // NOLINT(*-narrowing-conversions)
 }
 
-void drawHeader(const GameState *gs) {
+void drawHeader(GameState *gs) {
     // Print header
     constexpr char scoreMsg[] = "Score: ";
     for (size_t i = 0; scoreMsg[i] != '\0'; i++) {
         putchar(scoreMsg[i]);
     }
-    putNumber(gs->snakeLength);
+    putNumber(getPoints(gs));
     putchar('\n');
 
     // Print seperator
@@ -98,7 +70,7 @@ void drawHeader(const GameState *gs) {
     putchar('\n');
 }
 
-void draw(const GameState *gs) {
+void draw(GameState *gs) {
     system("clear");
 
     drawHeader(gs);
@@ -108,12 +80,14 @@ void draw(const GameState *gs) {
         for (size_t x = 0; x < WIDTH; x++) {
             bool printed = false;
 
-            if (gs->food.x == x && gs->food.y == y) {
+            const Point *food = getFoodPosition(gs);
+            if (food->x == x && food->y == y) {
                 putchar('F');
                 continue;
             }
 
-            for (size_t i = 0; i < gs->snakeLength; i++) {
+            const size_t snakeLength = getSnakeLength(gs);
+            for (size_t i = 0; i < snakeLength; i++) {
                 if (gs->snake[i].x == x && gs->snake[i].y == y) {
                     printed = true;
                     putchar(i == 0 ? '@' : 'o');
@@ -152,22 +126,25 @@ void tick(GameState *gs) {
     }
 
     // Check for collision with itself
-    for (size_t i = 0; i < gs->snakeLength; i++) {
+    const size_t snakeLength = getSnakeLength(gs);
+    for (size_t i = 0; i < snakeLength; i++) {
         if (gs->snake[i].x == newHead.x && gs->snake[i].y == newHead.y) {
-            gs->isActive = false;
+            setIsActive(gs,false);
             return;
         }
     }
 
     // Shift body
-    for (size_t i = gs->snakeLength; 0 < i; i--) {
+    for (size_t i = snakeLength; 0 < i; i--) {
         gs->snake[i] = gs->snake[i - 1];
     }
     gs->snake[0] = newHead;
 
     // Check for food
-    if (newHead.y == gs->food.y && newHead.x == gs->food.x) {
-        gs->snakeLength++;
+    const Point *food = getFoodPosition(gs);
+    if (newHead.y == food->y && newHead.x == food->x) {
+        setSnakeLength(gs, getSnakeLength(gs));
+        setPoints(gs, getPoints(gs) + 1);
         spawnFood(&gs->food);
     }
 }
@@ -177,9 +154,9 @@ void initGameState(GameState *gs) {
 
     spawnFood(&gs->food);
 
-    gs->direction = RIGHT;
+    setDirection(gs, RIGHT);
 
-    gs->snakeLength = DEFAULT_START_LENGTH;
+    setSnakeLength(gs, DEFAULT_START_LENGTH);
 
     for (size_t i = 0; i < gs->snakeLength; i++) {
         gs->snake[i] = (Point){WIDTH / 2 - i, HEIGHT / 2};
@@ -202,6 +179,6 @@ void enableRawMode(GameState *gs) {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &rawTerm);
 }
 
-void disableRawMode(const GameState *gs) {
+void disableRawMode(GameState *gs) {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &gs->origTerm);
 }
