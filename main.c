@@ -39,7 +39,7 @@ typedef struct {
 void drawHeader(const GameState *gs);
 bool keyboardHit();
 void enableRawMode(GameState *gs);
-void disableRawMode(GameState *gs);
+void disableRawMode(const GameState *gs);
 void spawnFood(Point *food);
 void draw(const GameState *gs);
 void tick(GameState *gs);
@@ -47,7 +47,7 @@ void initGameState(GameState *gs);
 
 // ----------------------------------------------------------------------------
 int main(void) {
-    srand(time(0));
+    srand(time(nullptr)); // NOLINT(*-msc51-cpp)
 
     GameState gs;
     initGameState(&gs);
@@ -78,8 +78,8 @@ int main(void) {
 
 // ----------------------------------------------------------------------------
 void spawnFood(Point *food) {
-    food->x = rand() % WIDTH;
-    food->y = rand() % HEIGHT;
+    food->x = rand() % WIDTH; // NOLINT(*-narrowing-conversions)
+    food->y = rand() % HEIGHT; // NOLINT(*-narrowing-conversions)
 }
 
 void drawHeader(const GameState *gs) {
@@ -95,6 +95,7 @@ void drawHeader(const GameState *gs) {
     for (size_t i = 0; i < WIDTH; i++) {
         printf("=");
     }
+    putchar('\n');
 }
 
 void draw(const GameState *gs) {
@@ -190,7 +191,7 @@ bool keyboardHit() {
     struct timeval tv = {0};
     FD_ZERO(&set);
     FD_SET(STDIN_FILENO, &set);
-    return select(STDIN_FILENO + 1, &set, nullptr, 0, &tv) == 1;
+    return select(STDIN_FILENO + 1, &set, nullptr, nullptr, &tv) == 1;
 }
 
 void enableRawMode(GameState *gs) {
@@ -201,6 +202,6 @@ void enableRawMode(GameState *gs) {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &rawTerm);
 }
 
-void disableRawMode(GameState *gs) {
+void disableRawMode(const GameState *gs) {
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &gs->origTerm);
 }
